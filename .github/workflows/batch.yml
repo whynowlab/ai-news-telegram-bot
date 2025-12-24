@@ -1,0 +1,47 @@
+name: AI News - 6 Hour Batch
+
+on:
+  schedule:
+    # 6시간마다 실행 (KST 기준: 3시, 9시, 15시, 21시)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:  # 수동 실행
+
+jobs:
+  batch-news:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: data/seen_news.json
+          key: seen-news-${{ github.run_id }}
+          restore-keys: |
+            seen-news-
+      
+      - name: Run batch mode
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        working-directory: src
+        run: python main.py --mode batch
+      
+      - name: Save cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/seen_news.json
+          key: seen-news-${{ github.run_id }}
