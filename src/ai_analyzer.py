@@ -28,7 +28,7 @@ class AIAnalyzer:
             raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다")
         
         self.api_key = GEMINI_API_KEY
-        self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+        self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={self.api_key}"
     
     def _check_keyword_importance(self, text: str) -> int:
         """키워드 기반 중요도 보너스"""
