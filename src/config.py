@@ -12,22 +12,22 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # === Priority Levels ===
 class Priority(Enum):
-    REALTIME = "realtime"      # 즉시 전송 (중요도 8-10)
-    BATCH_6H = "batch_6h"      # 6시간 배치 (중요도 5-7)
-    DAILY = "daily"            # 일일 요약 (중요도 1-4)
+    REALTIME = "realtime"
+    BATCH_6H = "batch_6h"
+    DAILY = "daily"
 
 # === Source Configuration ===
 @dataclass
 class NewsSource:
     name: str
     url: str
-    source_type: str  # rss, reddit, twitter_nitter, hackernews
-    base_trust: int   # 1-10 기본 신뢰도
-    category: str     # official, personal, community, academic
+    source_type: str
+    base_trust: int
+    category: str
 
 # === News Sources ===
 NEWS_SOURCES = [
-    # === 공식 블로그 (최고 신뢰도) ===
+    # === 공식 블로그 (최고 신뢰도 10) ===
     NewsSource(
         name="OpenAI Blog",
         url="https://openai.com/news/rss.xml",
@@ -63,38 +63,80 @@ NEWS_SOURCES = [
         base_trust=10,
         category="official"
     ),
+    NewsSource(
+        name="Meta AI Blog",
+        url="https://ai.meta.com/blog/rss/",
+        source_type="rss",
+        base_trust=10,
+        category="official"
+    ),
+    NewsSource(
+        name="NVIDIA AI Blog",
+        url="https://blogs.nvidia.com/feed/",
+        source_type="rss",
+        base_trust=10,
+        category="official"
+    ),
+    NewsSource(
+        name="Hugging Face Blog",
+        url="https://huggingface.co/blog/feed.xml",
+        source_type="rss",
+        base_trust=9,
+        category="official"
+    ),
     
-    # === 신뢰할 수 있는 뉴스 매체 ===
+    # === 신뢰할 수 있는 뉴스 매체 (8-9) ===
     NewsSource(
         name="MIT Technology Review AI",
         url="https://www.technologyreview.com/topic/artificial-intelligence/feed",
         source_type="rss",
         base_trust=9,
-        category="official"
+        category="media"
     ),
     NewsSource(
         name="Wired AI",
         url="https://www.wired.com/feed/tag/ai/latest/rss",
         source_type="rss",
         base_trust=8,
-        category="official"
+        category="media"
     ),
     NewsSource(
         name="TechCrunch AI",
         url="https://techcrunch.com/category/artificial-intelligence/feed/",
         source_type="rss",
         base_trust=8,
-        category="official"
+        category="media"
     ),
     NewsSource(
         name="VentureBeat AI",
         url="https://venturebeat.com/category/ai/feed/",
         source_type="rss",
         base_trust=8,
-        category="official"
+        category="media"
+    ),
+    NewsSource(
+        name="The Verge AI",
+        url="https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+        source_type="rss",
+        base_trust=8,
+        category="media"
+    ),
+    NewsSource(
+        name="Ars Technica AI",
+        url="https://feeds.arstechnica.com/arstechnica/technology-lab",
+        source_type="rss",
+        base_trust=8,
+        category="media"
+    ),
+    NewsSource(
+        name="Reuters Tech",
+        url="https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best&best-topics=tech",
+        source_type="rss",
+        base_trust=9,
+        category="media"
     ),
     
-    # === 개인 뉴스레터 (검증된 전문가) ===
+    # === 개인 뉴스레터/블로그 (검증된 전문가 8-9) ===
     NewsSource(
         name="Simon Willison Blog",
         url="https://simonwillison.net/atom/everything/",
@@ -116,8 +158,52 @@ NEWS_SOURCES = [
         base_trust=8,
         category="personal"
     ),
+    NewsSource(
+        name="The Batch (DeepLearning.AI)",
+        url="https://www.deeplearning.ai/the-batch/feed/",
+        source_type="rss",
+        base_trust=9,
+        category="personal"
+    ),
+    NewsSource(
+        name="Sebastian Raschka",
+        url="https://magazine.sebastianraschka.com/feed",
+        source_type="rss",
+        base_trust=8,
+        category="personal"
+    ),
+    NewsSource(
+        name="Chip Huyen",
+        url="https://huyenchip.com/feed.xml",
+        source_type="rss",
+        base_trust=8,
+        category="personal"
+    ),
     
-    # === 학술 ===
+    # === 커뮤니티 (7-8) ===
+    NewsSource(
+        name="Hacker News AI",
+        url="https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude+OR+Gemini&points=100",
+        source_type="rss",
+        base_trust=7,
+        category="community"
+    ),
+    NewsSource(
+        name="Reddit MachineLearning",
+        url="https://www.reddit.com/r/MachineLearning/hot/.rss?limit=20",
+        source_type="rss",
+        base_trust=7,
+        category="community"
+    ),
+    NewsSource(
+        name="Reddit LocalLLaMA",
+        url="https://www.reddit.com/r/LocalLLaMA/hot/.rss?limit=15",
+        source_type="rss",
+        base_trust=7,
+        category="community"
+    ),
+    
+    # === 학술 (9) ===
     NewsSource(
         name="arXiv cs.AI",
         url="https://rss.arxiv.org/rss/cs.AI",
@@ -140,7 +226,7 @@ NEWS_SOURCES = [
         category="academic"
     ),
     
-    # === YouTube (영상) ===
+    # === YouTube (영상 8) ===
     NewsSource(
         name="Two Minute Papers",
         url="https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg",
@@ -155,32 +241,32 @@ NEWS_SOURCES = [
         base_trust=8,
         category="personal"
     ),
+    NewsSource(
+        name="AI Explained",
+        url="https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw",
+        source_type="rss",
+        base_trust=8,
+        category="personal"
+    ),
 ]
 
-# === Importance Keywords (중요도 높이는 키워드) ===
+# === Importance Keywords ===
 HIGH_IMPORTANCE_KEYWORDS = [
-    # 주요 모델/제품 출시
-    "gpt-5", "gpt5", "claude 4", "claude-4", "gemini 2", "llama 4",
+    "gpt-5", "gpt5", "claude 4", "claude-4", "gemini 3", "llama 4",
     "release", "launch", "announce", "발표", "출시",
-    
-    # 주요 기업
     "openai", "anthropic", "google deepmind", "meta ai",
-    
-    # 중요 이벤트
     "breakthrough", "sota", "state-of-the-art", "benchmark",
     "agi", "safety", "alignment", "regulation", "법안",
-    
-    # 주요 인물
     "sam altman", "dario amodei", "demis hassabis", "yann lecun",
     "andrej karpathy", "ilya sutskever",
 ]
 
-# === Filter Keywords (제외할 키워드) ===
 EXCLUDE_KEYWORDS = [
     "sponsor", "advertisement", "promoted", "job posting",
 ]
 
 # === Settings ===
-MAX_NEWS_PER_BATCH = 10  # 배치당 최대 뉴스 수
-SUMMARY_MAX_LENGTH = 300  # 요약 최대 글자 수
-CACHE_HOURS = 48  # 중복 체크 기간 (시간)
+MAX_NEWS_PER_BATCH = 10
+SUMMARY_MAX_LENGTH = 300
+CACHE_HOURS = 48
+MAX_NEWS_AGE_HOURS = 24  # 24시간 이내 뉴스만 수집
