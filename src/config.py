@@ -1,5 +1,6 @@
 """
 AI News Telegram Bot - Configuration
+(OpenRouter 버전)
 """
 import os
 from dataclasses import dataclass
@@ -8,6 +9,11 @@ from enum import Enum
 # === API Keys ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+# OpenRouter API 키 (Gemini 대체)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# 기존 Gemini 키 (더 이상 사용 안함, 호환성 유지)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # === Priority Levels ===
@@ -269,4 +275,4 @@ EXCLUDE_KEYWORDS = [
 MAX_NEWS_PER_BATCH = 10
 SUMMARY_MAX_LENGTH = 300
 CACHE_HOURS = 48
-MAX_NEWS_AGE_HOURS = 24  # 24시간 이내 뉴스만 수집
+MAX_NEWS_AGE_HOURS = 24
