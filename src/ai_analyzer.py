@@ -1,34 +1,53 @@
 """
-AI Analyzer - Gemini를 사용한 뉴스 분석 및 요약
+AI Analyzer - OpenRouter를 사용한 뉴스 분석 및 요약
+(폴백 지원 버전)
 """
 import requests
 import json
 import re
+import time
 from typing import List, Optional
 from dataclasses import dataclass
 
-from config import GEMINI_API_KEY, Priority, HIGH_IMPORTANCE_KEYWORDS
+from config import OPENROUTER_API_KEY, Priority, HIGH_IMPORTANCE_KEYWORDS
 from news_collector import NewsItem
+
+
+# ============================================
+# 폴백 모델 설정 (무료 모델들)
+# ============================================
+FALLBACK_MODELS = [
+    "google/gemini-2.0-flash-exp:free",      # 1순위: 한국어 최고
+    "meta-llama/llama-3.3-70b-instruct:free", # 2순위: 안정적
+    "qwen/qwen3-235b-a22b:free",              # 3순위: 한국어 양호
+    "mistralai/mistral-small-3.1-24b-instruct:free",  # 4순위: 빠름
+]
 
 
 @dataclass
 class AnalyzedNews:
     """분석된 뉴스"""
     news_item: NewsItem
-    korean_title: str         # 한국어 제목
-    korean_summary: str       # 한국어 요약
-    importance_score: int     # 중요도 점수 (1-10)
-    priority: Priority        # 전송 우선순위
-    reason: str               # 중요도 판단 이유
+    korean_title: str
+    korean_summary: str
+    importance_score: int
+    priority: Priority
+    reason: str
 
 
 class AIAnalyzer:
     def __init__(self):
-        if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다")
+        if not OPENROUTER_API_KEY:
+            raise ValueError("OPENROUTER_API_KEY가 설정되지 않았습니다")
         
-        self.api_key = GEMINI_API_KEY
-        self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={self.api_key}"
+        self.api_key = OPENROUTER_API_KEY
+        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/whynowlab/ai-news-telegram-bot",
+            "X-Title": "AI News Bot"
+        }
     
     def _check_keyword_importance(self, text: str) -> int:
         """키워드 기반 중요도 보너스"""
@@ -39,7 +58,51 @@ class AIAnalyzer:
             if keyword.lower() in text_lower:
                 bonus += 1
         
-        return min(bonus, 3)  # 최대 +3
+        return min(bonus, 3)
+    
+    def _call_openrouter(self, prompt: str, model: str) -> Optional[str]:
+        """OpenRouter API 호출"""
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 500
+        }
+        
+        try:
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json=payload,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data["choices"][0]["message"]["content"].strip()
+            else:
+                print(f"    ⚠️ {model}: {response.status_code}")
+                return None
+                
+        except requests.exceptions.Timeout:
+            print(f"    ⚠️ {model}: 타임아웃")
+            return None
+        except Exception as e:
+            print(f"    ⚠️ {model}: {e}")
+            return None
+    
+    def _call_with_fallback(self, prompt: str) -> Optional[str]:
+        """폴백 로직으로 API 호출"""
+        for model in FALLBACK_MODELS:
+            result = self._call_openrouter(prompt, model)
+            if result:
+                return result
+            time.sleep(1)  # 폴백 시 잠시 대기
+        
+        print("    ❌ 모든 모델 실패")
+        return None
     
     def analyze_single(self, news: NewsItem) -> Optional[AnalyzedNews]:
         """단일 뉴스 분석"""
@@ -69,33 +132,13 @@ class AIAnalyzer:
 반드시 JSON 형식으로만 응답하세요."""
 
         try:
-            # REST API 호출
-            payload = {
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }],
-                "generationConfig": {
-                    "temperature": 0.3,
-                    "maxOutputTokens": 500
-                }
-            }
+            # 폴백 로직으로 호출
+            text = self._call_with_fallback(prompt)
             
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=30
-            )
-            
-            if response.status_code != 200:
-                print(f"❌ Gemini API 오류: {response.status_code} - {response.text[:100]}")
+            if not text:
                 return None
             
-            result_data = response.json()
-            text = result_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            
             # JSON 파싱
-            # 코드 블록 제거
             text = re.sub(r'```json\s*', '', text)
             text = re.sub(r'```\s*', '', text)
             text = text.strip()
@@ -108,7 +151,6 @@ class AIAnalyzer:
             )
             
             base_score = result.get('importance_score', 5)
-            # 소스 신뢰도 반영 (신뢰도 높으면 중요도도 약간 상승)
             trust_bonus = (news.source_trust - 5) * 0.2
             
             final_score = min(10, max(1, int(base_score + keyword_bonus + trust_bonus)))
@@ -131,17 +173,17 @@ class AIAnalyzer:
             )
             
         except json.JSONDecodeError as e:
-            print(f"❌ JSON 파싱 실패: {news.title[:30]}... - {e}")
+            print(f"    ❌ JSON 파싱 실패: {e}")
             return None
         except Exception as e:
-            print(f"❌ 분석 실패: {news.title[:30]}... - {e}")
+            print(f"    ❌ 분석 실패: {e}")
             return None
     
     def analyze_batch(self, news_list: List[NewsItem]) -> List[AnalyzedNews]:
         """여러 뉴스 일괄 분석"""
         analyzed = []
         
-        print(f"\n🤖 {len(news_list)}개 뉴스 AI 분석 중...\n")
+        print(f"\n🤖 {len(news_list)}개 뉴스 AI 분석 중... (OpenRouter)\n")
         
         for i, news in enumerate(news_list):
             print(f"  [{i+1}/{len(news_list)}] {news.title[:40]}...")
@@ -149,6 +191,7 @@ class AIAnalyzer:
             if result:
                 analyzed.append(result)
                 print(f"    → 중요도: {result.importance_score}/10 ({result.priority.value})")
+            time.sleep(0.5)  # Rate limit 방지
         
         # 중요도순 정렬
         analyzed.sort(key=lambda x: x.importance_score, reverse=True)
@@ -175,7 +218,7 @@ if __name__ == "__main__":
     
     if items:
         analyzer = AIAnalyzer()
-        analyzed = analyzer.analyze_batch(items[:3])  # 테스트로 3개만
+        analyzed = analyzer.analyze_batch(items[:3])
         
         for a in analyzed:
             print(f"\n{'='*50}")
