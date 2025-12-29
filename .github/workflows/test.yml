@@ -1,12 +1,10 @@
 name: AI News - Test Connection
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:  # 수동 실행
+  workflow_dispatch:
 
 jobs:
-  test:
+  test-connection:
     runs-on: ubuntu-latest
     
     steps:
@@ -22,13 +20,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       
-      - name: Create data directory
-        run: mkdir -p data
-      
       - name: Run test
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         working-directory: src
         run: python main.py --mode test
