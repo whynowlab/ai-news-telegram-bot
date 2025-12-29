@@ -2,9 +2,8 @@ name: AI News - Daily Summary
 
 on:
   schedule:
-    # 매일 아침 9시 (KST) = UTC 0시
     - cron: '0 0 * * *'
-  workflow_dispatch:  # 수동 실행
+  workflow_dispatch:
 
 jobs:
   daily-summary:
@@ -35,7 +34,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         working-directory: src
         run: python main.py --mode daily
       
