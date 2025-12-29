@@ -30,7 +30,6 @@ class AIAnalyzer:
         
         self.api_key = GEMINI_API_KEY
         self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
-
     
     def _check_keyword_importance(self, text: str) -> int:
         """키워드 기반 중요도 보너스"""
@@ -50,7 +49,7 @@ class AIAnalyzer:
                 {"parts": [{"text": prompt}]}
             ],
             "generationConfig": {
-                "temperature": 0.3,
+                "temperature": 0.2,
                 "maxOutputTokens": 500
             }
         }
@@ -66,7 +65,7 @@ class AIAnalyzer:
                 data = response.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"].strip()
             else:
-                print(f"    ⚠️ Gemini API: {response.status_code} - {response.text[:100]}")
+                print(f"    ⚠️ Gemini API: {response.status_code}")
                 return None
                 
         except requests.exceptions.Timeout:
@@ -75,6 +74,66 @@ class AIAnalyzer:
         except Exception as e:
             print(f"    ⚠️ Gemini API: {e}")
             return None
+    
+    def _extract_json(self, text: str) -> Optional[dict]:
+        """텍스트에서 JSON 추출 (여러 방법 시도)"""
+        # 1. 마크다운 코드블록 제거
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*', '', text)
+        text = text.strip()
+        
+        # 2. 전체 텍스트 파싱 시도
+        try:
+            return json.loads(text)
+        except:
+            pass
+        
+        # 3. JSON 객체 패턴 찾기 (중첩 브라켓 처리)
+        try:
+            start = text.find('{')
+            if start != -1:
+                depth = 0
+                for i, char in enumerate(text[start:], start):
+                    if char == '{':
+                        depth += 1
+                    elif char == '}':
+                        depth -= 1
+                        if depth == 0:
+                            json_str = text[start:i+1]
+                            return json.loads(json_str)
+        except:
+            pass
+        
+        # 4. 필드별 추출 시도
+        try:
+            result = {}
+            
+            # korean_title
+            match = re.search(r'"korean_title"\s*:\s*"([^"]+)"', text)
+            if match:
+                result['korean_title'] = match.group(1)
+            
+            # korean_summary
+            match = re.search(r'"korean_summary"\s*:\s*"([^"]+)"', text)
+            if match:
+                result['korean_summary'] = match.group(1)
+            
+            # importance_score
+            match = re.search(r'"importance_score"\s*:\s*(\d+)', text)
+            if match:
+                result['importance_score'] = int(match.group(1))
+            
+            # reason
+            match = re.search(r'"reason"\s*:\s*"([^"]+)"', text)
+            if match:
+                result['reason'] = match.group(1)
+            
+            if result:
+                return result
+        except:
+            pass
+        
+        return None
     
     def analyze_single(self, news: NewsItem) -> Optional[AnalyzedNews]:
         """단일 뉴스 분석"""
@@ -87,12 +146,7 @@ class AIAnalyzer:
 **카테고리**: {news.category}
 
 다음 형식의 JSON으로만 응답해주세요 (다른 텍스트 없이):
-{{
-    "korean_title": "한국어로 번역한 핵심 제목 (30자 이내)",
-    "korean_summary": "한국어로 요약 (2-3문장, 핵심 내용만)",
-    "importance_score": 1-10 사이의 숫자,
-    "reason": "중요도 판단 이유 (1문장)"
-}}
+{{"korean_title": "한국어로 번역한 핵심 제목 (30자 이내)", "korean_summary": "한국어로 요약 (2-3문장, 핵심 내용만)", "importance_score": 5, "reason": "중요도 판단 이유 (1문장)"}}
 
 **중요도 기준**:
 - 9-10: 주요 AI 기업의 새 모델 출시, 획기적인 연구 발표, 중요 정책/규제
@@ -101,20 +155,19 @@ class AIAnalyzer:
 - 3-4: 사소한 업데이트, 일상적인 뉴스
 - 1-2: 광고성, 반복적인 내용
 
-반드시 JSON 형식으로만 응답하세요."""
+반드시 JSON 형식으로만 응답하세요. 줄바꿈 없이 한 줄로 응답하세요."""
 
         try:
             text = self._call_gemini(prompt)
             
             if not text:
-                return None
+                return self._create_fallback(news)
             
-            # JSON 파싱
-            text = re.sub(r'```json\s*', '', text)
-            text = re.sub(r'```\s*', '', text)
-            text = text.strip()
+            result = self._extract_json(text)
             
-            result = json.loads(text)
+            if not result:
+                print(f"    ⚠️ JSON 추출 실패, 기본값 사용")
+                return self._create_fallback(news)
             
             # 키워드 보너스 적용
             keyword_bonus = self._check_keyword_importance(
@@ -122,8 +175,13 @@ class AIAnalyzer:
             )
             
             base_score = result.get('importance_score', 5)
-            trust_bonus = (news.source_trust - 5) * 0.2
+            if not isinstance(base_score, int):
+                try:
+                    base_score = int(base_score)
+                except:
+                    base_score = 5
             
+            trust_bonus = (news.source_trust - 5) * 0.2
             final_score = min(10, max(1, int(base_score + keyword_bonus + trust_bonus)))
             
             # 우선순위 결정
@@ -136,19 +194,39 @@ class AIAnalyzer:
             
             return AnalyzedNews(
                 news_item=news,
-                korean_title=result.get('korean_title', news.title),
-                korean_summary=result.get('korean_summary', news.summary),
+                korean_title=result.get('korean_title', news.title)[:50],
+                korean_summary=result.get('korean_summary', news.summary)[:200],
                 importance_score=final_score,
                 priority=priority,
-                reason=result.get('reason', '')
+                reason=result.get('reason', '')[:100]
             )
             
-        except json.JSONDecodeError as e:
-            print(f"    ❌ JSON 파싱 실패: {e}")
-            return None
         except Exception as e:
             print(f"    ❌ 분석 실패: {e}")
-            return None
+            return self._create_fallback(news)
+    
+    def _create_fallback(self, news: NewsItem) -> AnalyzedNews:
+        """분석 실패 시 기본값 생성"""
+        keyword_bonus = self._check_keyword_importance(f"{news.title} {news.summary}")
+        base_score = 5 + keyword_bonus
+        trust_bonus = (news.source_trust - 5) * 0.2
+        final_score = min(10, max(1, int(base_score + trust_bonus)))
+        
+        if final_score >= 8:
+            priority = Priority.REALTIME
+        elif final_score >= 5:
+            priority = Priority.BATCH_6H
+        else:
+            priority = Priority.DAILY
+        
+        return AnalyzedNews(
+            news_item=news,
+            korean_title=news.title[:50],
+            korean_summary=news.summary[:200],
+            importance_score=final_score,
+            priority=priority,
+            reason="자동 분류"
+        )
     
     def analyze_batch(self, news_list: List[NewsItem]) -> List[AnalyzedNews]:
         """여러 뉴스 일괄 분석"""
@@ -162,7 +240,7 @@ class AIAnalyzer:
             if result:
                 analyzed.append(result)
                 print(f"    → 중요도: {result.importance_score}/10 ({result.priority.value})")
-            time.sleep(0.3)  # Rate limit 방지
+            time.sleep(0.3)
         
         # 중요도순 정렬
         analyzed.sort(key=lambda x: x.importance_score, reverse=True)
