@@ -1,13 +1,12 @@
-name: AI News - 6 Hour Batch
+name: AI News - 6H Batch
 
 on:
   schedule:
-    # 6시간마다 실행 (KST 기준: 3시, 9시, 15시, 21시)
-    - cron: '0 0,6,12,18 * * *'
-  workflow_dispatch:  # 수동 실행
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
-  batch-news:
+  batch-check:
     runs-on: ubuntu-latest
     
     steps:
@@ -31,11 +30,11 @@ jobs:
           restore-keys: |
             seen-news-
       
-      - name: Run batch mode
+      - name: Run batch check
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         working-directory: src
         run: python main.py --mode batch
       
