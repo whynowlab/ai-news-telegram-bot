@@ -2,27 +2,26 @@ name: AI News - Realtime Check
 
 on:
   schedule:
-    # 30분마다 실행 (중요 뉴스 실시간 감지)
     - cron: '*/30 * * * *'
-  workflow_dispatch:  # 수동 실행
+  workflow_dispatch:
 
 jobs:
   realtime-check:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -30,17 +29,15 @@ jobs:
           key: seen-news-${{ github.run_id }}
           restore-keys: |
             seen-news-
-      
+
       - name: Run realtime check
         env:
-          env:
-  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         working-directory: src
         run: python main.py --mode realtime
-      
+
       - name: Save cache
         uses: actions/cache/save@v4
         if: always()
