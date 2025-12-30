@@ -1,6 +1,5 @@
 """
 AI News Telegram Bot - Configuration
-(OpenRouter 버전)
 """
 import os
 from dataclasses import dataclass
@@ -9,11 +8,6 @@ from enum import Enum
 # === API Keys ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
-
-# OpenRouter API 키 (Gemini 대체)
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-
-# 기존 Gemini 키 (더 이상 사용 안함, 호환성 유지)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # === Priority Levels ===
@@ -31,9 +25,9 @@ class NewsSource:
     base_trust: int
     category: str
 
-# === News Sources ===
+# === News Sources (총 53개) ===
 NEWS_SOURCES = [
-    # === 공식 블로그 (최고 신뢰도 10) ===
+    # === 공식 블로그 (10개) ===
     NewsSource(
         name="OpenAI Blog",
         url="https://openai.com/news/rss.xml",
@@ -90,8 +84,117 @@ NEWS_SOURCES = [
         base_trust=9,
         category="official"
     ),
+    NewsSource(
+        name="Amazon AI Blog",
+        url="https://aws.amazon.com/blogs/machine-learning/feed/",
+        source_type="rss",
+        base_trust=9,
+        category="official"
+    ),
+    NewsSource(
+        name="Apple ML Research",
+        url="https://machinelearning.apple.com/rss.xml",
+        source_type="rss",
+        base_trust=9,
+        category="official"
+    ),
     
-    # === 신뢰할 수 있는 뉴스 매체 (8-9) ===
+    # === 글로벌 뉴스 (7개) ===
+    NewsSource(
+        name="Google News AI",
+        url="https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en",
+        source_type="rss",
+        base_trust=7,
+        category="news"
+    ),
+    NewsSource(
+        name="Google News LLM",
+        url="https://news.google.com/rss/search?q=large+language+model+OR+ChatGPT+OR+GPT&hl=en-US&gl=US&ceid=US:en",
+        source_type="rss",
+        base_trust=7,
+        category="news"
+    ),
+    NewsSource(
+        name="BBC Tech",
+        url="https://feeds.bbci.co.uk/news/technology/rss.xml",
+        source_type="rss",
+        base_trust=9,
+        category="news"
+    ),
+    NewsSource(
+        name="NYT Tech",
+        url="https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+        source_type="rss",
+        base_trust=9,
+        category="news"
+    ),
+    NewsSource(
+        name="The Guardian AI",
+        url="https://www.theguardian.com/technology/artificialintelligenceai/rss",
+        source_type="rss",
+        base_trust=8,
+        category="news"
+    ),
+    NewsSource(
+        name="Reuters Tech",
+        url="https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best&best-topics=tech",
+        source_type="rss",
+        base_trust=9,
+        category="news"
+    ),
+    NewsSource(
+        name="AP News Tech",
+        url="https://rsshub.app/apnews/topics/technology",
+        source_type="rss",
+        base_trust=9,
+        category="news"
+    ),
+    
+    # === 한국 뉴스 (6개) ===
+    NewsSource(
+        name="전자신문 AI",
+        url="https://rss.etnews.com/Section902.xml",
+        source_type="rss",
+        base_trust=8,
+        category="korea"
+    ),
+    NewsSource(
+        name="ZDNet Korea",
+        url="https://zdnet.co.kr/rss/all.xml",
+        source_type="rss",
+        base_trust=8,
+        category="korea"
+    ),
+    NewsSource(
+        name="AI타임스",
+        url="https://www.aitimes.com/rss/allArticle.xml",
+        source_type="rss",
+        base_trust=8,
+        category="korea"
+    ),
+    NewsSource(
+        name="디지털타임스",
+        url="https://www.dt.co.kr/rss/all.xml",
+        source_type="rss",
+        base_trust=7,
+        category="korea"
+    ),
+    NewsSource(
+        name="IT조선",
+        url="https://it.chosun.com/rss/rss.xml",
+        source_type="rss",
+        base_trust=7,
+        category="korea"
+    ),
+    NewsSource(
+        name="테크M",
+        url="https://www.techm.kr/rss/allArticle.xml",
+        source_type="rss",
+        base_trust=7,
+        category="korea"
+    ),
+    
+    # === 테크 미디어 (8개) ===
     NewsSource(
         name="MIT Technology Review AI",
         url="https://www.technologyreview.com/topic/artificial-intelligence/feed",
@@ -135,14 +238,21 @@ NEWS_SOURCES = [
         category="media"
     ),
     NewsSource(
-        name="Reuters Tech",
-        url="https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best&best-topics=tech",
+        name="Engadget",
+        url="https://www.engadget.com/rss.xml",
         source_type="rss",
-        base_trust=9,
+        base_trust=7,
+        category="media"
+    ),
+    NewsSource(
+        name="CNET AI",
+        url="https://www.cnet.com/rss/news/",
+        source_type="rss",
+        base_trust=7,
         category="media"
     ),
     
-    # === 개인 뉴스레터/블로그 (검증된 전문가 8-9) ===
+    # === 전문가 블로그 (7개) ===
     NewsSource(
         name="Simon Willison Blog",
         url="https://simonwillison.net/atom/everything/",
@@ -185,8 +295,15 @@ NEWS_SOURCES = [
         base_trust=8,
         category="personal"
     ),
+    NewsSource(
+        name="Jay Alammar",
+        url="https://jalammar.github.io/feed.xml",
+        source_type="rss",
+        base_trust=8,
+        category="personal"
+    ),
     
-    # === 커뮤니티 (7-8) ===
+    # === 커뮤니티 (5개) ===
     NewsSource(
         name="Hacker News AI",
         url="https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude+OR+Gemini&points=100",
@@ -208,8 +325,22 @@ NEWS_SOURCES = [
         base_trust=7,
         category="community"
     ),
+    NewsSource(
+        name="Reddit ChatGPT",
+        url="https://www.reddit.com/r/ChatGPT/hot/.rss?limit=15",
+        source_type="rss",
+        base_trust=6,
+        category="community"
+    ),
+    NewsSource(
+        name="Reddit OpenAI",
+        url="https://www.reddit.com/r/OpenAI/hot/.rss?limit=15",
+        source_type="rss",
+        base_trust=6,
+        category="community"
+    ),
     
-    # === 학술 (9) ===
+    # === 논문 (5개) ===
     NewsSource(
         name="arXiv cs.AI",
         url="https://rss.arxiv.org/rss/cs.AI",
@@ -231,28 +362,58 @@ NEWS_SOURCES = [
         base_trust=9,
         category="academic"
     ),
+    NewsSource(
+        name="arXiv cs.CV",
+        url="https://rss.arxiv.org/rss/cs.CV",
+        source_type="rss",
+        base_trust=9,
+        category="academic"
+    ),
+    NewsSource(
+        name="Papers With Code",
+        url="https://paperswithcode.com/latest.rss",
+        source_type="rss",
+        base_trust=9,
+        category="academic"
+    ),
     
-    # === YouTube (영상 8) ===
+    # === YouTube (3개) ===
     NewsSource(
         name="Two Minute Papers",
         url="https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg",
         source_type="rss",
         base_trust=8,
-        category="personal"
+        category="video"
     ),
     NewsSource(
         name="Yannic Kilcher",
         url="https://www.youtube.com/feeds/videos.xml?channel_id=UCZHmQk67mSJgfCCTn7xBfew",
         source_type="rss",
         base_trust=8,
-        category="personal"
+        category="video"
     ),
     NewsSource(
         name="AI Explained",
         url="https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw",
         source_type="rss",
         base_trust=8,
-        category="personal"
+        category="video"
+    ),
+    
+    # === 뉴스레터 (2개) ===
+    NewsSource(
+        name="Import AI",
+        url="https://importai.substack.com/feed",
+        source_type="rss",
+        base_trust=8,
+        category="newsletter"
+    ),
+    NewsSource(
+        name="Last Week in AI",
+        url="https://lastweekin.ai/feed",
+        source_type="rss",
+        base_trust=8,
+        category="newsletter"
     ),
 ]
 
