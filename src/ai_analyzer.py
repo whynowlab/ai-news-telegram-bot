@@ -50,7 +50,7 @@ class AIAnalyzer:
             ],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 500
+                "maxOutputTokens": 1000
             }
         }
         
@@ -108,22 +108,18 @@ class AIAnalyzer:
         try:
             result = {}
             
-            # korean_title - 이스케이프된 따옴표 포함 처리
             match = re.search(r'"korean_title"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
                 result['korean_title'] = match.group(1).replace('\\"', '"')
             
-            # korean_summary - 이스케이프된 따옴표 포함 처리
             match = re.search(r'"korean_summary"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
                 result['korean_summary'] = match.group(1).replace('\\"', '"')
             
-            # importance_score
             match = re.search(r'"importance_score"\s*:\s*(\d+)', text)
             if match:
                 result['importance_score'] = int(match.group(1))
             
-            # reason - 이스케이프된 따옴표 포함 처리
             match = re.search(r'"reason"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
                 result['reason'] = match.group(1).replace('\\"', '"')
@@ -222,10 +218,18 @@ class AIAnalyzer:
             else:
                 priority = Priority.DAILY
             
+            korean_title = result.get('korean_title', news.title)[:50]
+            korean_summary = result.get('korean_summary', news.summary)[:200]
+            
+            # summary가 너무 짧으면 번역 재시도
+            if len(korean_summary) < 30:
+                print(f"    ⚠️ 요약 너무 짧음, 번역 재시도")
+                _, korean_summary = self._translate_to_korean(news.title, news.summary)
+            
             return AnalyzedNews(
                 news_item=news,
-                korean_title=result.get('korean_title', news.title)[:50],
-                korean_summary=result.get('korean_summary', news.summary)[:200],
+                korean_title=korean_title,
+                korean_summary=korean_summary,
                 importance_score=final_score,
                 priority=priority,
                 reason=result.get('reason', '')[:100]
