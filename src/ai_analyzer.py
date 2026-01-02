@@ -5,7 +5,7 @@ import requests
 import json
 import re
 import time
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
 from config import GEMINI_API_KEY, Priority, HIGH_IMPORTANCE_KEYWORDS
@@ -108,22 +108,18 @@ class AIAnalyzer:
         try:
             result = {}
             
-            # korean_title
             match = re.search(r'"korean_title"\s*:\s*"([^"]+)"', text)
             if match:
                 result['korean_title'] = match.group(1)
             
-            # korean_summary
             match = re.search(r'"korean_summary"\s*:\s*"([^"]+)"', text)
             if match:
                 result['korean_summary'] = match.group(1)
             
-            # importance_score
             match = re.search(r'"importance_score"\s*:\s*(\d+)', text)
             if match:
                 result['importance_score'] = int(match.group(1))
             
-            # reason
             match = re.search(r'"reason"\s*:\s*"([^"]+)"', text)
             if match:
                 result['reason'] = match.group(1)
@@ -134,6 +130,36 @@ class AIAnalyzer:
             pass
         
         return None
+    
+    def _translate_to_korean(self, title: str, summary: str) -> Tuple[str, str]:
+        """제목과 요약을 한국어로 번역"""
+        prompt = f"""다음 영어 텍스트를 한국어로 번역해주세요. 반드시 아래 형식으로만 응답하세요.
+
+제목: {title[:100]}
+요약: {summary[:300]}
+
+응답 형식:
+제목: [한국어 제목 30자 이내]
+요약: [한국어 요약 2문장]"""
+
+        try:
+            result = self._call_gemini(prompt)
+            if result:
+                kr_title = title[:50]
+                kr_summary = summary[:200]
+                
+                for line in result.strip().split('\n'):
+                    line = line.strip()
+                    if line.startswith('제목:'):
+                        kr_title = line.replace('제목:', '').strip()[:50]
+                    elif line.startswith('요약:'):
+                        kr_summary = line.replace('요약:', '').strip()[:200]
+                
+                return kr_title, kr_summary
+        except Exception as e:
+            print(f"    ⚠️ 번역 실패: {e}")
+        
+        return title[:50], summary[:200]
     
     def analyze_single(self, news: NewsItem) -> Optional[AnalyzedNews]:
         """단일 뉴스 분석"""
@@ -166,7 +192,7 @@ class AIAnalyzer:
             result = self._extract_json(text)
             
             if not result:
-                print(f"    ⚠️ JSON 추출 실패, 기본값 사용")
+                print(f"    ⚠️ JSON 추출 실패, 번역 시도")
                 return self._create_fallback(news)
             
             # 키워드 보너스 적용
@@ -206,7 +232,7 @@ class AIAnalyzer:
             return self._create_fallback(news)
     
     def _create_fallback(self, news: NewsItem) -> AnalyzedNews:
-        """분석 실패 시 기본값 생성"""
+        """분석 실패 시 번역 후 기본값 생성"""
         keyword_bonus = self._check_keyword_importance(f"{news.title} {news.summary}")
         base_score = 5 + keyword_bonus
         trust_bonus = (news.source_trust - 5) * 0.2
@@ -219,10 +245,13 @@ class AIAnalyzer:
         else:
             priority = Priority.DAILY
         
+        # 번역 시도
+        kr_title, kr_summary = self._translate_to_korean(news.title, news.summary)
+        
         return AnalyzedNews(
             news_item=news,
-            korean_title=news.title[:50],
-            korean_summary=news.summary[:200],
+            korean_title=kr_title,
+            korean_summary=kr_summary,
             importance_score=final_score,
             priority=priority,
             reason="자동 분류"
