@@ -326,31 +326,10 @@ NEWS_SOURCES = [
         category="community"
     ),
     
-    # === AI 논문 (5개) ===
+    # === AI 논문 (2개) ===
     NewsSource(
         name="arXiv cs.AI",
         url="https://rss.arxiv.org/rss/cs.AI",
-        source_type="rss",
-        base_trust=9,
-        category="academic"
-    ),
-    NewsSource(
-        name="arXiv cs.LG",
-        url="https://rss.arxiv.org/rss/cs.LG",
-        source_type="rss",
-        base_trust=9,
-        category="academic"
-    ),
-    NewsSource(
-        name="arXiv cs.CL",
-        url="https://rss.arxiv.org/rss/cs.CL",
-        source_type="rss",
-        base_trust=9,
-        category="academic"
-    ),
-    NewsSource(
-        name="arXiv cs.CV",
-        url="https://rss.arxiv.org/rss/cs.CV",
         source_type="rss",
         base_trust=9,
         category="academic"
