@@ -104,25 +104,29 @@ class AIAnalyzer:
         except:
             pass
         
-        # 4. 필드별 추출 시도
+        # 4. 필드별 추출 시도 (이스케이프된 따옴표 처리)
         try:
             result = {}
             
-            match = re.search(r'"korean_title"\s*:\s*"([^"]+)"', text)
+            # korean_title - 이스케이프된 따옴표 포함 처리
+            match = re.search(r'"korean_title"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
-                result['korean_title'] = match.group(1)
+                result['korean_title'] = match.group(1).replace('\\"', '"')
             
-            match = re.search(r'"korean_summary"\s*:\s*"([^"]+)"', text)
+            # korean_summary - 이스케이프된 따옴표 포함 처리
+            match = re.search(r'"korean_summary"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
-                result['korean_summary'] = match.group(1)
+                result['korean_summary'] = match.group(1).replace('\\"', '"')
             
+            # importance_score
             match = re.search(r'"importance_score"\s*:\s*(\d+)', text)
             if match:
                 result['importance_score'] = int(match.group(1))
             
-            match = re.search(r'"reason"\s*:\s*"([^"]+)"', text)
+            # reason - 이스케이프된 따옴표 포함 처리
+            match = re.search(r'"reason"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
             if match:
-                result['reason'] = match.group(1)
+                result['reason'] = match.group(1).replace('\\"', '"')
             
             if result:
                 return result
