@@ -23,12 +23,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Create data directory
-        run: mkdir -p data && touch data/seen_news.json && echo '{}' > data/seen_news.json
+        run: mkdir -p src/data
 
       - name: Restore cache
         uses: actions/cache@v4
         with:
-          path: data/seen_news.json
+          path: src/data/seen_news.json
           key: seen-news-${{ github.run_id }}
           restore-keys: |
             seen-news-
@@ -45,5 +45,5 @@ jobs:
         uses: actions/cache/save@v4
         if: always()
         with:
-          path: data/seen_news.json
+          path: src/data/seen_news.json
           key: seen-news-${{ github.run_id }}
