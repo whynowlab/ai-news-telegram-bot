@@ -25,7 +25,7 @@ class NewsSource:
     base_trust: int
     category: str
 
-# === News Sources (총 53개) ===
+# === News Sources (총 51개) ===
 NEWS_SOURCES = [
     # === AI 기업 공식 블로그 (10개) ===
     NewsSource(
@@ -171,21 +171,7 @@ NEWS_SOURCES = [
         category="influencer"
     ),
     
-    # === AI 전문 뉴스 (3개) ===
-    NewsSource(
-        name="Google News AI",
-        url="https://news.google.com/rss/search?q=artificial+intelligence+OR+ChatGPT+OR+OpenAI+OR+Claude+AI&hl=en-US&gl=US&ceid=US:en",
-        source_type="rss",
-        base_trust=7,
-        category="news"
-    ),
-    NewsSource(
-        name="Google News AI 한국",
-        url="https://news.google.com/rss/search?q=ChatGPT+OR+GPT+OR+OpenAI+OR+Anthropic+OR+Claude+OR+Gemini+OR+LLM&hl=ko&gl=KR&ceid=KR:ko",
-        source_type="rss",
-        base_trust=7,
-        category="news"
-    ),
+    # === AI 전문 뉴스 (1개) ===
     NewsSource(
         name="The Guardian AI",
         url="https://www.theguardian.com/technology/artificialintelligenceai/rss",
